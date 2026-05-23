@@ -3,42 +3,37 @@ session_start();
 
 include("../modelo/conexion.php");
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: ../vista/login.php");
-    exit();
-}
+$usuario = $_POST['usuario'];
+$contrasena = $_POST['contrasena'];
 
-$usuario = $_POST["usuario"] ?? "";
-$contrasena = $_POST["contrasena"] ?? "";
+$sql = "SELECT * FROM usuarios WHERE usuario='$usuario'";
 
-if ($usuario == "" || $contrasena == "") {
-    header("Location: ../vista/login.php?error=1");
-    exit();
-}
+$resultado = $conexion->query($sql);
 
-$sql = $conexion->prepare("SELECT * FROM usuarios WHERE usuario = ? LIMIT 1");
-$sql->bind_param("s", $usuario);
-$sql->execute();
+if ($resultado && $resultado->num_rows > 0) {
 
-$resultado = $sql->get_result();
+    $row = $resultado->fetch_assoc();
 
-if ($resultado->num_rows == 0) {
-    header("Location: ../vista/login.php?error=1");
-    exit();
-}
+    if (
+        password_verify($contrasena, $row['password']) ||
+        $contrasena == $row['password']
+    ) {
 
-$row = $resultado->fetch_assoc();
+        $_SESSION['id'] = $row['id_usuario'];
+        $_SESSION['usuario'] = $row['usuario'];
+        $_SESSION['rol'] = $row['rol_id'];
 
-if (password_verify($contrasena, $row["password"]) || $contrasena == $row["password"]) {
+        header("Location: ../vista/dashboard.php");
+        exit();
 
-    $_SESSION["id"] = $row["id_usuario"];
-    $_SESSION["usuario"] = $row["usuario"];
-    $_SESSION["rol"] = $row["rol_id"];
+    } else {
 
-    header("Location: ../vista/dashboard.php");
-    exit();
+        header("Location: ../vista/login.php?error=1");
+        exit();
+    }
 
 } else {
+
     header("Location: ../vista/login.php?error=1");
     exit();
 }
