@@ -1,44 +1,27 @@
-<<<<<<< HEAD
 <?php
-
-function tienePermiso($conexion, $id_usuario, $permiso) {
-
-    if (isset($_SESSION['rol']) && $_SESSION['rol'] == 'Administrador') {
-        return true;
-    }
-
-    $sql = "SELECT permiso 
-            FROM usuario_permiso 
-            WHERE id_usuario = ? AND permiso = ?";
-
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("is", $id_usuario, $permiso);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-
-    return $resultado->num_rows > 0;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-=======
-<?php
 
-function tienePermiso($conexion, $id_usuario, $permiso) {
-
-    if (isset($_SESSION['rol']) && $_SESSION['rol'] == 'Administrador') {
-        return true;
-    }
-
-    $sql = "SELECT permiso 
-            FROM usuario_permiso 
-            WHERE id_usuario = ? AND permiso = ?";
-
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("is", $id_usuario, $permiso);
-    $stmt->execute();
-
-    $resultado = $stmt->get_result();
-
-    return $resultado->num_rows > 0;
+function esAdmin() {
+    return isset($_SESSION['rol']) && $_SESSION['rol'] == 1;
 }
->>>>>>> 452094ddd0ffd458f6b759cd9dfb5fbf40ef7bb2
+
+function esEmpleado() {
+    return isset($_SESSION['rol']) && ($_SESSION['rol'] == 1 || $_SESSION['rol'] == 2);
+}
+
+function soloAdmin() {
+    if (!esAdmin()) {
+        header("Location: ../vista/dashboard.php");
+        exit();
+    }
+}
+
+function soloEmpleado() {
+    if (!esEmpleado()) {
+        header("Location: ../vista/dashboard.php");
+        exit();
+    }
+}
 ?>
