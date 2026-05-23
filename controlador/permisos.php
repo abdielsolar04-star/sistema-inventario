@@ -1,5 +1,4 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -8,45 +7,37 @@ function esAdmin() {
     return isset($_SESSION['rol']) && $_SESSION['rol'] == 1;
 }
 
-function esEmpleado() {
-    return isset($_SESSION['rol']) && ($_SESSION['rol'] == 1 || $_SESSION['rol'] == 2);
-}
-
 function tienePermiso($permiso) {
     if (!isset($_SESSION['rol'])) {
         return false;
     }
 
-    if ($_SESSION['rol'] == 1) {
+    if (esAdmin()) {
         return true;
     }
 
-    if ($_SESSION['rol'] == 2) {
-        $permitidos = [
-            'caja',
-            'productos',
-            'ventas',
-            'movimientos'
-        ];
-
-        return in_array($permiso, $permitidos);
+    if (!isset($_SESSION['id_usuario'])) {
+        return false;
     }
 
-    return false;
+    include(__DIR__ . "/../modelo/conexion.php");
+
+    $id_usuario = $_SESSION['id_usuario'];
+
+    $sql = "SELECT * FROM usuario_permiso WHERE id_usuario = ? AND permiso = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("is", $id_usuario, $permiso);
+    $stmt->execute();
+
+    $resultado = $stmt->get_result();
+
+    return $resultado->num_rows > 0;
 }
 
-function soloAdmin() {
-    if (!esAdmin()) {
+function proteger($permiso) {
+    if (!tienePermiso($permiso)) {
         echo "No tienes permiso";
         exit();
     }
 }
-
-function soloEmpleado() {
-    if (!esEmpleado()) {
-        echo "No tienes permiso";
-        exit();
-    }
-}
-
 ?>

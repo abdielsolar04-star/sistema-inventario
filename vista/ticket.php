@@ -2,142 +2,51 @@
 include("../controlador/seguridad.php");
 include("../modelo/conexion.php");
 
-$id_venta = intval($_GET['id'] ?? $_GET['id_venta'] ?? 0);
+$id_venta = $_GET['id_venta'];
 
-if ($id_venta <= 0) {
-    die("Ticket no válido");
-}
+$sql = "
+SELECT 
+    v.id_venta,
+    v.total,
+    v.fecha_venta,
+    u.usuario,
+    dv.descripcion,
+    dv.cantidad,
+    dv.precio,
+    dv.subtotal
+FROM ventas v
+INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
+INNER JOIN detalle_ventas dv ON v.id_venta = dv.id_venta
+WHERE v.id_venta = ?
+";
 
-$venta = $conexion->prepare("
-    SELECT ventas.*, usuarios.nombre
-    FROM ventas
-    INNER JOIN usuarios ON ventas.id_usuario = usuarios.id_usuario
-    WHERE ventas.id_venta = ?
-");
+$stmt = $conexion->prepare($sql);
+$stmt->bind_param("i", $id_venta);
+$stmt->execute();
 
-$venta->bind_param("i", $id_venta);
-$venta->execute();
-$ventaData = $venta->get_result()->fetch_assoc();
+$resultado = $stmt->get_result();
 
-if (!$ventaData) {
+if ($resultado->num_rows == 0) {
     die("Ticket no encontrado");
 }
 
-$detalle = $conexion->prepare("
-    SELECT 
-        detalle_ventas.*,
-        productos.nombre_producto
-    FROM detalle_ventas
-    INNER JOIN productos 
-        ON detalle_ventas.id_producto = productos.id_producto
-    WHERE detalle_ventas.id_venta = ?
-");
-
-$detalle->bind_param("i", $id_venta);
-$detalle->execute();
-$resultadoDetalle = $detalle->get_result();
+$venta = $resultado->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Ticket</title>
 
 <style>
-*{
-    box-sizing:border-box;
-}
-
-body {
-    background:#f3f4f6;
-    font-family:monospace;
-    margin:0;
-    padding:15px;
-}
-
-.ticket {
-    width:360px;
-    max-width:100%;
-    margin:20px auto;
-    background:white;
-    padding:22px;
-    border-radius:18px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.12);
-}
-
-.center {
-    text-align:center;
-}
-
-.ticket h2 {
-    margin-bottom:5px;
-}
-
-.ticket p {
-    margin:4px 0;
-}
-
-table {
-    width:100%;
-    font-size:12px;
-    border-collapse:collapse;
-}
-
-td {
-    padding:5px 0;
-    vertical-align:top;
-}
-
-.total {
-    font-size:24px;
-    font-weight:bold;
-    text-align:right;
-    margin-top:15px;
-}
-
-.btn {
-    display:block;
-    background:#2563eb;
-    color:white;
-    padding:12px;
-    text-align:center;
-    text-decoration:none;
-    border-radius:10px;
-    margin-top:10px;
-    border:none;
-    width:100%;
-    cursor:pointer;
-    font-size:15px;
-}
-
-.btn:hover {
-    background:#1e40af;
-}
-
-.btn-regresar {
-    background:#16a34a;
-}
-
-@media print {
-    body {
-        background:white;
-        padding:0;
-    }
-
-    .btn {
-        display:none;
-    }
-
-    .ticket {
-        box-shadow:none;
-        margin:0;
-        width:100%;
-        border-radius:0;
-    }
-}
+body{font-family:Arial;background:white}
+.ticket{width:300px;margin:30px auto;border:1px dashed #333;padding:20px}
+h2{text-align:center}
+p{margin:6px 0}
+.total{font-size:22px;font-weight:bold;text-align:center}
+.btn{display:block;margin:15px auto;padding:10px;background:#2563eb;color:white;text-align:center;text-decoration:none;border-radius:8px}
+@media print{.btn{display:none}}
 </style>
 </head>
 
@@ -145,265 +54,30 @@ td {
 
 <div class="ticket">
 
-    <div class="center">
-        <h2>PAPELERÍA</h2>
-        <p>Sistema de Inventario y Punto de Venta</p>
-        <p>Folio: <?php echo $ventaData['id_venta']; ?></p>
-        <p>Empleado: <?php echo htmlspecialchars($ventaData['nombre']); ?></p>
-        <p>Fecha: <?php echo $ventaData['fecha_venta']; ?></p>
-    </div>
+<h2>Punto de Venta</h2>
 
-    <hr>
+<p><strong>Ticket:</strong> <?php echo $venta['id_venta']; ?></p>
+<p><strong>Fecha:</strong> <?php echo $venta['fecha_venta']; ?></p>
+<p><strong>Cajero:</strong> <?php echo $venta['usuario']; ?></p>
 
-    <table>
-        <?php while($d = $resultadoDetalle->fetch_assoc()) { ?>
-        <tr>
-            <td>
-                <?php echo htmlspecialchars($d['nombre_producto']); ?>
-                x<?php echo $d['cantidad']; ?>
-            </td>
+<hr>
 
-            <td style="text-align:right;">
-                $<?php echo number_format($d['subtotal'], 2); ?>
-            </td>
-        </tr>
-        <?php } ?>
-    </table>
+<p><strong>Producto:</strong> <?php echo $venta['descripcion']; ?></p>
+<p><strong>Cantidad:</strong> <?php echo $venta['cantidad']; ?></p>
+<p><strong>Precio:</strong> $<?php echo number_format($venta['precio'],2); ?></p>
+<p><strong>Subtotal:</strong> $<?php echo number_format($venta['subtotal'],2); ?></p>
 
-    <hr>
+<hr>
 
-    <p class="total">
-        TOTAL: $<?php echo number_format($ventaData['total'], 2); ?>
-    </p>
+<p class="total">Total: $<?php echo number_format($venta['total'],2); ?></p>
 
-    <div class="center">
-        <p>Gracias por su compra</p>
-    </div>
+<p style="text-align:center;">Gracias por su compra</p>
 
-    <button type="button" onclick="imprimirTicket()" class="btn">
-        Imprimir / Guardar PDF
-    </button>
-
-    <a href="caja.php" class="btn btn-regresar">
-        Regresar a caja
-    </a>
+<a href="#" onclick="window.print()" class="btn">Imprimir Ticket</a>
+<a href="caja.php" class="btn">Nueva venta</a>
+<a href="dashboard.php" class="btn">Dashboard</a>
 
 </div>
 
-<script>
-function imprimirTicket(){
-    if (typeof Android !== "undefined" && Android.imprimir) {
-        Android.imprimir();
-    } else {
-        window.print();
-    }
-}
-</script>
-
 </body>
-=======
-<?php
-include("../controlador/seguridad.php");
-include("../modelo/conexion.php");
-
-$id_venta = intval($_GET['id'] ?? $_GET['id_venta'] ?? 0);
-
-if ($id_venta <= 0) {
-    die("Ticket no válido");
-}
-
-$venta = $conexion->prepare("
-    SELECT ventas.*, usuarios.nombre
-    FROM ventas
-    INNER JOIN usuarios ON ventas.id_usuario = usuarios.id_usuario
-    WHERE ventas.id_venta = ?
-");
-
-$venta->bind_param("i", $id_venta);
-$venta->execute();
-$ventaData = $venta->get_result()->fetch_assoc();
-
-if (!$ventaData) {
-    die("Ticket no encontrado");
-}
-
-$detalle = $conexion->prepare("
-    SELECT 
-        detalle_ventas.*,
-        productos.nombre_producto
-    FROM detalle_ventas
-    INNER JOIN productos 
-        ON detalle_ventas.id_producto = productos.id_producto
-    WHERE detalle_ventas.id_venta = ?
-");
-
-$detalle->bind_param("i", $id_venta);
-$detalle->execute();
-$resultadoDetalle = $detalle->get_result();
-?>
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Ticket</title>
-
-<style>
-*{
-    box-sizing:border-box;
-}
-
-body {
-    background:#f3f4f6;
-    font-family:monospace;
-    margin:0;
-    padding:15px;
-}
-
-.ticket {
-    width:360px;
-    max-width:100%;
-    margin:20px auto;
-    background:white;
-    padding:22px;
-    border-radius:18px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.12);
-}
-
-.center {
-    text-align:center;
-}
-
-.ticket h2 {
-    margin-bottom:5px;
-}
-
-.ticket p {
-    margin:4px 0;
-}
-
-table {
-    width:100%;
-    font-size:12px;
-    border-collapse:collapse;
-}
-
-td {
-    padding:5px 0;
-    vertical-align:top;
-}
-
-.total {
-    font-size:24px;
-    font-weight:bold;
-    text-align:right;
-    margin-top:15px;
-}
-
-.btn {
-    display:block;
-    background:#2563eb;
-    color:white;
-    padding:12px;
-    text-align:center;
-    text-decoration:none;
-    border-radius:10px;
-    margin-top:10px;
-    border:none;
-    width:100%;
-    cursor:pointer;
-    font-size:15px;
-}
-
-.btn:hover {
-    background:#1e40af;
-}
-
-.btn-regresar {
-    background:#16a34a;
-}
-
-@media print {
-    body {
-        background:white;
-        padding:0;
-    }
-
-    .btn {
-        display:none;
-    }
-
-    .ticket {
-        box-shadow:none;
-        margin:0;
-        width:100%;
-        border-radius:0;
-    }
-}
-</style>
-</head>
-
-<body>
-
-<div class="ticket">
-
-    <div class="center">
-        <h2>PAPELERÍA</h2>
-        <p>Sistema de Inventario y Punto de Venta</p>
-        <p>Folio: <?php echo $ventaData['id_venta']; ?></p>
-        <p>Empleado: <?php echo htmlspecialchars($ventaData['nombre']); ?></p>
-        <p>Fecha: <?php echo $ventaData['fecha_venta']; ?></p>
-    </div>
-
-    <hr>
-
-    <table>
-        <?php while($d = $resultadoDetalle->fetch_assoc()) { ?>
-        <tr>
-            <td>
-                <?php echo htmlspecialchars($d['nombre_producto']); ?>
-                x<?php echo $d['cantidad']; ?>
-            </td>
-
-            <td style="text-align:right;">
-                $<?php echo number_format($d['subtotal'], 2); ?>
-            </td>
-        </tr>
-        <?php } ?>
-    </table>
-
-    <hr>
-
-    <p class="total">
-        TOTAL: $<?php echo number_format($ventaData['total'], 2); ?>
-    </p>
-
-    <div class="center">
-        <p>Gracias por su compra</p>
-    </div>
-
-    <button type="button" onclick="imprimirTicket()" class="btn">
-        Imprimir / Guardar PDF
-    </button>
-
-    <a href="caja.php" class="btn btn-regresar">
-        Regresar a caja
-    </a>
-
-</div>
-
-<script>
-function imprimirTicket(){
-    if (typeof Android !== "undefined" && Android.imprimir) {
-        Android.imprimir();
-    } else {
-        window.print();
-    }
-}
-</script>
-
-</body>
-
 </html>
