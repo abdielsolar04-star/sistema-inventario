@@ -2,7 +2,7 @@
 
 $servidor = "sql10.freesqldatabase.com";
 $usuario = "sql10827970";
-$password = "UHKdqXFFIB";
+$password = "AQUI_PEGA_LA_CONTRASEÑA_DEL_CORREO";
 $base_datos = "sql10827970";
 $puerto = 3306;
 
