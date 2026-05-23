@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,15 +14,16 @@ function esEmpleado() {
 
 function soloAdmin() {
     if (!esAdmin()) {
-        header("Location: ../vista/dashboard.php");
+        echo "No tienes permiso";
         exit();
     }
 }
 
 function soloEmpleado() {
     if (!esEmpleado()) {
-        header("Location: ../vista/dashboard.php");
+        echo "No tienes permiso";
         exit();
     }
 }
+
 ?>
