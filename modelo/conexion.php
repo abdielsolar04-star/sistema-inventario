@@ -1,9 +1,9 @@
 <?php
 
 $servidor = "sql10.freesqldatabase.com";
-$usuario = "sql10827970";
-$password = "TU_PASSWORD_REAL";
-$base_datos = "sql10827970";
+$usuario = "sql10828040";
+$password = "NrkVnY4tsx";
+$base_datos = "sql10828040";
 $puerto = 3306;
 
 $conexion = new mysqli(
