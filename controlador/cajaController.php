@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 <?php
 include("seguridad.php");
 include("../modelo/conexion.php");
