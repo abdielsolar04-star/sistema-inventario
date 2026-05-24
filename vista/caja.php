@@ -22,7 +22,7 @@ $productos = $conexion->query("SELECT * FROM productos WHERE estado='activo' ORD
 body{background:#f1f5f9;padding:30px}
 .card{background:white;padding:30px;border-radius:22px;box-shadow:0 10px 25px #0002}
 h1{margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1fr 1fr 120px 120px;gap:12px;margin-bottom:15px}
+.grid{display:grid;grid-template-columns:1.3fr 1.8fr 120px 120px;gap:12px;margin-bottom:15px}
 input,select{padding:13px;border:1px solid #ddd;border-radius:10px;width:100%}
 button,.btn{background:#2563eb;color:white;border:0;padding:13px 18px;border-radius:10px;text-decoration:none;cursor:pointer}
 .btn-red{background:#dc2626}
@@ -52,7 +52,7 @@ td{padding:12px;border-bottom:1px solid #ddd;text-align:center}
                 data-codigo="<?php echo $p['codigo']; ?>"
                 data-nombre="<?php echo $p['nombre_producto']; ?>"
                 data-precio="<?php echo $p['precio_venta']; ?>">
-                <?php echo $p['codigo']." - ".$p['nombre_producto']." - $".$p['precio_venta']; ?>
+                <?php echo $p['codigo']." - ".$p['nombre_producto']." - $".$p['precio_venta']." - Stock: ".$p['stock']; ?>
             </option>
         <?php } ?>
     </select>
@@ -100,14 +100,15 @@ const cantidadInput = document.getElementById("cantidad");
 
 codigoInput.focus();
 
-document.addEventListener("click", () => codigoInput.focus());
-
-codigoInput.addEventListener("keypress", function(e){
+codigoInput.addEventListener("keydown", function(e){
     if(e.key === "Enter"){
         e.preventDefault();
 
         let codigo = codigoInput.value.trim();
-        if(codigo === "") return;
+
+        if(codigo === ""){
+            return;
+        }
 
         let encontrado = false;
 
@@ -125,7 +126,10 @@ codigoInput.addEventListener("keypress", function(e){
         }
 
         codigoInput.value = "";
-        codigoInput.focus();
+
+        setTimeout(() => {
+            codigoInput.focus();
+        }, 100);
     }
 });
 
@@ -143,7 +147,9 @@ function agregarProducto(){
     let precio = parseFloat(option.dataset.precio);
     let cantidad = parseInt(cantidadInput.value);
 
-    if(cantidad <= 0) cantidad = 1;
+    if(cantidad <= 0 || isNaN(cantidad)){
+        cantidad = 1;
+    }
 
     let existente = carrito.find(p => p.id_producto == id);
 
@@ -163,8 +169,12 @@ function agregarProducto(){
 
     productoSelect.value = "";
     cantidadInput.value = 1;
+
     actualizarTabla();
-    codigoInput.focus();
+
+    setTimeout(() => {
+        codigoInput.focus();
+    }, 100);
 }
 
 function actualizarTabla(){
@@ -183,7 +193,11 @@ function actualizarTabla(){
             <td>${p.cantidad}</td>
             <td>$${p.precio.toFixed(2)}</td>
             <td>$${p.subtotal.toFixed(2)}</td>
-            <td><button type="button" class="btn-red" onclick="quitar(${index})">X</button></td>
+            <td>
+                <button type="button" class="btn-red" onclick="quitar(${index})">
+                    X
+                </button>
+            </td>
         </tr>`;
     });
 
@@ -200,6 +214,8 @@ function limpiarVenta(){
     carrito = [];
     actualizarTabla();
     codigoInput.value = "";
+    cantidadInput.value = 1;
+    productoSelect.value = "";
     codigoInput.focus();
 }
 
@@ -207,6 +223,7 @@ document.getElementById("formVenta").addEventListener("submit", function(e){
     if(carrito.length === 0){
         e.preventDefault();
         alert("Agrega productos a la venta");
+        codigoInput.focus();
     }
 });
 </script>
