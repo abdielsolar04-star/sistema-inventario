@@ -1,88 +1,184 @@
 <?php
-error_reporting(0);
-ini_set('display_errors', 0);
 
-include("../controlador/seguridad.php");
+include("seguridad.php");
 include("../modelo/conexion.php");
 
 $id_usuario = $_SESSION['id_usuario'];
-$productos = json_decode($_POST['productos_json'] ?? '[]', true);
+
+$productos = json_decode($_POST['productos'] ?? '', true);
+$total = floatval($_POST['total'] ?? 0);
 
 if (!$productos || count($productos) == 0) {
     die("No hay productos en la venta");
 }
 
-$totalVenta = 0;
-
-foreach ($productos as $p) {
-    $totalVenta += floatval($p['subtotal']);
+if ($total <= 0) {
+    die("Total inválido");
 }
 
-$sqlVenta = "INSERT INTO ventas(id_producto,id_usuario,cantidad,total,fecha_venta)
-             VALUES(NULL, ?, 0, ?, NOW())";
+$conexion->begin_transaction();
 
-$stmtVenta = $conexion->prepare($sqlVenta);
-$stmtVenta->bind_param("id", $id_usuario, $totalVenta);
-$stmtVenta->execute();
+try {
 
-$id_venta = $conexion->insert_id;
+    /*
+    1. Registrar venta principal
+    */
+    $sqlVenta = "
+    INSERT INTO ventas
+    (
+        id_producto,
+        id_usuario,
+        cantidad,
+        total
+    )
+    VALUES
+    (
+        NULL,
+        ?,
+        0,
+        ?
+    )
+    ";
 
-foreach ($productos as $p) {
+    $stmtVenta = $conexion->prepare($sqlVenta);
+    $stmtVenta->bind_param("id", $id_usuario, $total);
+    $stmtVenta->execute();
 
-    $id_producto = intval($p['id_producto']);
-    $cantidad = intval($p['cantidad']);
+    $id_venta = $conexion->insert_id;
 
-    $sqlProducto = "SELECT * FROM productos WHERE id_producto=?";
-    $stmtProducto = $conexion->prepare($sqlProducto);
-    $stmtProducto->bind_param("i", $id_producto);
-    $stmtProducto->execute();
-    $producto = $stmtProducto->get_result()->fetch_assoc();
+    /*
+    2. Registrar cada producto vendido
+    */
+    foreach ($productos as $productoCarrito) {
 
-    if (!$producto) {
-        continue;
+        $id_producto = intval($productoCarrito['id']);
+
+        $sqlProducto = "
+        SELECT *
+        FROM productos
+        WHERE id_producto = ?
+        ";
+
+        $stmtProducto = $conexion->prepare($sqlProducto);
+        $stmtProducto->bind_param("i", $id_producto);
+        $stmtProducto->execute();
+
+        $resultadoProducto = $stmtProducto->get_result();
+
+        if ($resultadoProducto->num_rows == 0) {
+            throw new Exception("Producto no encontrado");
+        }
+
+        $producto = $resultadoProducto->fetch_assoc();
+
+        if ($producto['stock'] <= 0) {
+            throw new Exception("No hay stock para: " . $producto['nombre_producto']);
+        }
+
+        $cantidad = 1;
+        $precio = floatval($producto['precio_venta']);
+        $subtotal = $precio * $cantidad;
+
+        /*
+        3. Insertar detalle de venta
+        */
+        $sqlDetalle = "
+        INSERT INTO detalle_ventas
+        (
+            id_venta,
+            id_producto,
+            codigo,
+            descripcion,
+            cantidad,
+            precio,
+            subtotal
+        )
+        VALUES
+        (
+            ?, ?, ?, ?, ?, ?, ?
+        )
+        ";
+
+        $stmtDetalle = $conexion->prepare($sqlDetalle);
+
+        $stmtDetalle->bind_param(
+            "iissidd",
+            $id_venta,
+            $id_producto,
+            $producto['codigo'],
+            $producto['nombre_producto'],
+            $cantidad,
+            $precio,
+            $subtotal
+        );
+
+        $stmtDetalle->execute();
+
+        /*
+        4. Descontar stock
+        */
+        $sqlStock = "
+        UPDATE productos
+        SET stock = stock - 1
+        WHERE id_producto = ?
+        ";
+
+        $stmtStock = $conexion->prepare($sqlStock);
+        $stmtStock->bind_param("i", $id_producto);
+        $stmtStock->execute();
     }
 
-    if ($producto['stock'] < $cantidad) {
-        die("No hay suficiente stock de ".$producto['nombre_producto']);
-    }
+    /*
+    5. Auditoría
+    */
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $so = $_SERVER['HTTP_USER_AGENT'];
 
-    $precio = $producto['precio_venta'];
-    $subtotal = $precio * $cantidad;
+    $descripcion = "Venta registrada. Total: $" . $total;
 
-    $sqlDetalle = "INSERT INTO detalle_ventas
-    (id_venta,id_producto,codigo,descripcion,cantidad,precio,subtotal)
-    VALUES(?,?,?,?,?,?,?)";
+    $sqlAuditoria = "
+    INSERT INTO auditoria
+    (
+        id_usuario,
+        accion,
+        tabla_afectada,
+        descripcion,
+        ip_usuario,
+        sistema_operativo
+    )
+    VALUES
+    (
+        ?,
+        'VENTA',
+        'ventas',
+        ?,
+        ?,
+        ?
+    )
+    ";
 
-    $stmtDetalle = $conexion->prepare($sqlDetalle);
-    $stmtDetalle->bind_param(
-        "iissidd",
-        $id_venta,
-        $id_producto,
-        $producto['codigo'],
-        $producto['nombre_producto'],
-        $cantidad,
-        $precio,
-        $subtotal
+    $stmtAuditoria = $conexion->prepare($sqlAuditoria);
+
+    $stmtAuditoria->bind_param(
+        "isss",
+        $id_usuario,
+        $descripcion,
+        $ip,
+        $so
     );
-    $stmtDetalle->execute();
 
-    $nuevoStock = $producto['stock'] - $cantidad;
+    $stmtAuditoria->execute();
 
-    $sqlStock = "UPDATE productos SET stock=? WHERE id_producto=?";
-    $stmtStock = $conexion->prepare($sqlStock);
-    $stmtStock->bind_param("ii", $nuevoStock, $id_producto);
-    $stmtStock->execute();
+    $conexion->commit();
 
-    $sqlMov = "INSERT INTO movimientos
-    (id_producto,id_usuario,tipo_movimiento,cantidad,fecha_movimiento,observacion)
-    VALUES(?,?,?,?,NOW(),'Venta desde caja')";
+    header("Location: ../vista/ticket.php?id=" . $id_venta);
+    exit();
 
-    $tipo = "Salida";
-    $stmtMov = $conexion->prepare($sqlMov);
-    $stmtMov->bind_param("iisi", $id_producto, $id_usuario, $tipo, $cantidad);
-    $stmtMov->execute();
+} catch (Exception $e) {
+
+    $conexion->rollback();
+
+    die("Error al vender: " . $e->getMessage());
 }
 
-header("Location: ../vista/ticket.php?id=".$id_venta);
-exit();
 ?>
