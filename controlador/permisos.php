@@ -1,43 +1,21 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
-if (!function_exists('esAdmin')) {
-    function esAdmin() {
-        return isset($_SESSION['rol']) && $_SESSION['rol'] == 1;
+function tienePermiso($conexion, $id_usuario, $permiso) {
+
+    if (isset($_SESSION['rol']) && $_SESSION['rol'] == 'Administrador') {
+        return true;
     }
-}
 
-if (!function_exists('tienePermiso')) {
-    function tienePermiso($permiso) {
-        if (esAdmin()) {
-            return true;
-        }
+    $sql = "SELECT permiso 
+            FROM usuario_permiso 
+            WHERE id_usuario = ? AND permiso = ?";
 
-        if (!isset($_SESSION['id_usuario'])) {
-            return false;
-        }
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("is", $id_usuario, $permiso);
+    $stmt->execute();
 
-        include(__DIR__ . "/../modelo/conexion.php");
+    $resultado = $stmt->get_result();
 
-        $id_usuario = $_SESSION['id_usuario'];
-
-        $sql = "SELECT * FROM usuario_permiso WHERE id_usuario=? AND permiso=?";
-        $stmt = $conexion->prepare($sql);
-        $stmt->bind_param("is", $id_usuario, $permiso);
-        $stmt->execute();
-
-        return $stmt->get_result()->num_rows > 0;
-    }
-}
-
-if (!function_exists('proteger')) {
-    function proteger($permiso) {
-        if (!tienePermiso($permiso)) {
-            echo "No tienes permiso";
-            exit();
-        }
-    }
+    return $resultado->num_rows > 0;
 }
 ?>
