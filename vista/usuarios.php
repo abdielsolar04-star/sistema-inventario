@@ -26,107 +26,113 @@ $permisosDisponibles = [
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Usuarios y permisos</title>
-    <link rel="stylesheet" href="../assets/css/estilo.css">
+<meta charset="UTF-8">
+<title>Usuarios y permisos</title>
+<link rel="stylesheet" href="../assets/css/estilo.css">
 </head>
 <body>
 
 <div class="contenedor">
 
-    <a href="dashboard.php" class="btn">← Regresar</a>
+<a href="dashboard.php" class="btn">← Regresar</a>
 
-    <h1>Crear usuario</h1>
+<h1>Crear usuario</h1>
 
-    <form action="../controlador/usuarioController.php" method="POST">
+<form action="../controlador/usuarioController.php" method="POST">
+    <input type="hidden" name="accion" value="crear">
 
-        <input type="hidden" name="accion" value="crear">
+    <input type="text" name="nombre" placeholder="Nombre completo" required>
+    <input type="text" name="usuario" placeholder="Usuario" required>
+    <input type="password" name="password" placeholder="Contraseña" required>
 
-        <input type="text" name="nombre" placeholder="Nombre completo" required>
+    <select name="id_rol" required>
+        <option value="2">Empleado</option>
+        <option value="1">Administrador</option>
+    </select>
 
-        <input type="text" name="usuario" placeholder="Usuario" required>
+    <button type="submit">Crear usuario</button>
+</form>
 
-        <input type="password" name="password" placeholder="Contraseña" required>
+<h2>Usuarios registrados</h2>
 
-        <select name="id_rol" required>
-            <option value="2">Empleado</option>
-            <option value="1">Administrador</option>
-        </select>
+<?php while($u = $usuarios->fetch_assoc()) { ?>
 
-        <button type="submit">Crear usuario</button>
+<div style="background:#f8f9fa; padding:20px; margin:20px 0; border-radius:10px;">
 
-    </form>
+    <h3>
+        <?php echo htmlspecialchars($u['nombre']); ?>
+        - <?php echo htmlspecialchars($u['nombre_rol']); ?>
+    </h3>
 
-    <h2>Usuarios registrados</h2>
+    <p>
+        Usuario: <?php echo htmlspecialchars($u['usuario']); ?>
+    </p>
 
-    <?php while($u = $usuarios->fetch_assoc()) { ?>
+    <?php if ($u['id_usuario'] != $_SESSION['id_usuario']) { ?>
+        <a 
+        href="../controlador/usuarioController.php?eliminar=<?php echo $u['id_usuario']; ?>"
+        class="btn-danger"
+        onclick="return confirm('¿Seguro que deseas eliminar este usuario?')"
+        >
+        Eliminar usuario
+        </a>
+    <?php } else { ?>
+        <p style="color:#64748b;">No puedes eliminar tu propio usuario.</p>
+    <?php } ?>
 
-        <div style="background:#f8f9fa; padding:20px; margin:20px 0; border-radius:10px;">
+    <?php if ($u['nombre_rol'] == 'Empleado') { ?>
 
-            <h3>
-                <?php echo $u['nombre']; ?> 
-                - <?php echo $u['nombre_rol']; ?>
-            </h3>
+        <?php
+        $id_usuario_permiso = $u['id_usuario'];
 
-            <p>
-                Usuario: <?php echo $u['usuario']; ?>
-            </p>
+        $consultaPermisos = $conexion->prepare("
+            SELECT permiso 
+            FROM usuario_permiso 
+            WHERE id_usuario = ?
+        ");
 
-            <?php if ($u['nombre_rol'] == 'Empleado') { ?>
+        $consultaPermisos->bind_param("i", $id_usuario_permiso);
+        $consultaPermisos->execute();
 
-                <?php
-                $id_usuario_permiso = $u['id_usuario'];
+        $resultadoPermisos = $consultaPermisos->get_result();
 
-                $consultaPermisos = $conexion->prepare("
-                    SELECT permiso 
-                    FROM usuario_permiso 
-                    WHERE id_usuario = ?
-                ");
+        $permisosUsuario = [];
 
-                $consultaPermisos->bind_param("i", $id_usuario_permiso);
-                $consultaPermisos->execute();
+        while($p = $resultadoPermisos->fetch_assoc()) {
+            $permisosUsuario[] = $p['permiso'];
+        }
+        ?>
 
-                $resultadoPermisos = $consultaPermisos->get_result();
+        <h4>Permisos del empleado</h4>
 
-                $permisosUsuario = [];
+        <form action="../controlador/usuarioController.php" method="POST">
 
-                while($p = $resultadoPermisos->fetch_assoc()) {
-                    $permisosUsuario[] = $p['permiso'];
-                }
-                ?>
+            <input type="hidden" name="accion" value="permisos">
+            <input type="hidden" name="id_usuario" value="<?php echo $u['id_usuario']; ?>">
 
-                <h4>Permisos del empleado</h4>
+            <?php foreach($permisosDisponibles as $clave => $texto) { ?>
 
-                <form action="../controlador/usuarioController.php" method="POST">
-
-                    <input type="hidden" name="accion" value="permisos">
-                    <input type="hidden" name="id_usuario" value="<?php echo $u['id_usuario']; ?>">
-
-                    <?php foreach($permisosDisponibles as $clave => $texto) { ?>
-
-                        <label style="display:block; margin:8px 0;">
-                            <input 
-                                type="checkbox" 
-                                name="permisos[]" 
-                                value="<?php echo $clave; ?>"
-                                <?php echo in_array($clave, $permisosUsuario) ? 'checked' : ''; ?>
-                            >
-                            <?php echo $texto; ?>
-                        </label>
-
-                    <?php } ?>
-
-                    <button type="submit">
-                        Guardar permisos
-                    </button>
-
-                </form>
+                <label style="display:block; margin:8px 0;">
+                    <input 
+                        type="checkbox" 
+                        name="permisos[]" 
+                        value="<?php echo $clave; ?>"
+                        <?php echo in_array($clave, $permisosUsuario) ? 'checked' : ''; ?>
+                    >
+                    <?php echo $texto; ?>
+                </label>
 
             <?php } ?>
 
-        </div>
+            <button type="submit">Guardar permisos</button>
+
+        </form>
 
     <?php } ?>
+
+</div>
+
+<?php } ?>
 
 </div>
 

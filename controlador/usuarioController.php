@@ -10,13 +10,29 @@ $accion = $_POST['accion'] ?? '';
 
 if ($accion == "crear") {
 
-    $nombre = $_POST['nombre'];
-    $usuario = $_POST['usuario'];
+    $nombre = trim($_POST['nombre']);
+    $usuario = trim($_POST['usuario']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $id_rol = $_POST['id_rol'];
+    $id_rol = intval($_POST['id_rol']);
 
-    $sql = "INSERT INTO usuarios(nombre, usuario, password, id_rol, estado)
-            VALUES (?, ?, ?, ?, 'Activo')";
+    $verificar = $conexion->prepare("
+        SELECT id_usuario 
+        FROM usuarios 
+        WHERE usuario = ?
+    ");
+
+    $verificar->bind_param("s", $usuario);
+    $verificar->execute();
+    $resultado = $verificar->get_result();
+
+    if ($resultado->num_rows > 0) {
+        die("Ese usuario ya existe");
+    }
+
+    $sql = "
+        INSERT INTO usuarios(nombre, usuario, password, id_rol, estado)
+        VALUES (?, ?, ?, ?, 'Activo')
+    ";
 
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("sssi", $nombre, $usuario, $password, $id_rol);
@@ -55,6 +71,46 @@ if ($accion == "permisos") {
 
     header("Location: ../vista/usuarios.php");
     exit();
+}
+
+if (isset($_GET['eliminar'])) {
+
+    $id_usuario = intval($_GET['eliminar']);
+
+    if ($id_usuario == $_SESSION['id_usuario']) {
+        die("No puedes eliminar tu propio usuario");
+    }
+
+    $conexion->begin_transaction();
+
+    try {
+
+        $borrarPermisos = $conexion->prepare("
+            DELETE FROM usuario_permiso 
+            WHERE id_usuario = ?
+        ");
+
+        $borrarPermisos->bind_param("i", $id_usuario);
+        $borrarPermisos->execute();
+
+        $borrarUsuario = $conexion->prepare("
+            DELETE FROM usuarios 
+            WHERE id_usuario = ?
+        ");
+
+        $borrarUsuario->bind_param("i", $id_usuario);
+        $borrarUsuario->execute();
+
+        $conexion->commit();
+
+        header("Location: ../vista/usuarios.php");
+        exit();
+
+    } catch (Exception $e) {
+
+        $conexion->rollback();
+        die("Error al eliminar usuario");
+    }
 }
 
 header("Location: ../vista/usuarios.php");

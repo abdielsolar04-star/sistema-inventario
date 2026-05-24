@@ -1,3 +1,90 @@
+/* =========================================================
+   ESTILO GENERAL
+========================================================= */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f1f5f9;
+    color:#111827;
+}
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+.login-body{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    background:linear-gradient(135deg,#2563eb,#1e3a8a);
+}
+
+.login-card{
+    background:white;
+    width:420px;
+    padding:40px;
+    border-radius:25px;
+    box-shadow:0 15px 35px rgba(0,0,0,0.2);
+}
+
+.login-card h1{
+    font-size:42px;
+    margin-bottom:10px;
+    color:#111827;
+    text-align:center;
+}
+
+.login-card p{
+    text-align:center;
+    margin-bottom:25px;
+    color:#64748b;
+}
+
+.login-card input{
+    width:100%;
+    padding:14px;
+    margin-bottom:15px;
+    border:1px solid #cbd5e1;
+    border-radius:12px;
+    font-size:16px;
+}
+
+.login-card button{
+    width:100%;
+    padding:14px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.login-card button:hover{
+    background:#1d4ed8;
+}
+
+.error{
+    background:#fee2e2;
+    color:#991b1b;
+    padding:12px;
+    border-radius:10px;
+    margin-top:15px;
+    text-align:center;
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
 .inicio{
     min-height:100vh;
     background:#f1f5f9;
@@ -47,7 +134,7 @@
     max-width:1000px;
     margin:0 auto;
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
     gap:20px;
 }
 
@@ -71,26 +158,253 @@
 }
 
 .salir{
-    background:#dc2626;
-    color:white;
+    background:#dc2626 !important;
+    color:white !important;
 }
 
+.salir:hover{
+    background:#991b1b !important;
+}
+
+/* =========================================================
+   CONTENEDOR
+========================================================= */
+
+.contenedor{
+    max-width:1300px;
+    margin:30px auto;
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+/* =========================================================
+   TITULOS
+========================================================= */
+
+h1{
+    margin-bottom:25px;
+    font-size:40px;
+}
+
+h2{
+    margin:25px 0 15px;
+}
+
+h3{
+    margin-bottom:10px;
+}
+
+/* =========================================================
+   FORMULARIOS
+========================================================= */
+
+form{
+    margin-bottom:25px;
+}
+
+input,
+select{
+    width:100%;
+    padding:14px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    margin-bottom:15px;
+    font-size:16px;
+}
+
+/* =========================================================
+   BOTONES
+========================================================= */
+
+button,
+.btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:10px;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+button:hover,
+.btn:hover{
+    background:#1d4ed8;
+}
+
+.btn-danger{
+    background:#dc2626;
+    color:white;
+    padding:10px 15px;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:bold;
+    display:inline-block;
+}
+
+.btn-danger:hover{
+    background:#991b1b;
+}
+
+.btn-success{
+    background:#16a34a;
+}
+
+.btn-success:hover{
+    background:#15803d;
+}
+
+.btn-warning{
+    background:#f59e0b;
+}
+
+.btn-warning:hover{
+    background:#d97706;
+}
+
+/* =========================================================
+   TABLAS
+========================================================= */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+table th{
+    background:#2563eb;
+    color:white;
+    padding:15px;
+    text-align:left;
+}
+
+table td{
+    padding:14px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+table tr:hover{
+    background:#f8fafc;
+}
+
+/* =========================================================
+   TARJETAS
+========================================================= */
+
+.cards-ganancias{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:15px;
+    margin:20px 0;
+}
+
+.card-ganancia{
+    background:#2563eb;
+    color:white;
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+}
+
+.card-ganancia h2{
+    font-size:32px;
+    margin-top:10px;
+}
+
+.ganancia{
+    color:#16a34a;
+    font-weight:bold;
+}
+
+.perdida{
+    color:#dc2626;
+    font-weight:bold;
+}
+
+/* =========================================================
+   CAJA
+========================================================= */
+
+.caja-grid{
+    display:grid;
+    grid-template-columns:2fr 2fr 1fr 1fr;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.total{
+    text-align:right;
+    font-size:35px;
+    margin-top:20px;
+    font-weight:bold;
+}
+
+/* =========================================================
+   TICKET
+========================================================= */
+
+.ticket{
+    width:360px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+}
+
+.ticket h2{
+    text-align:center;
+}
+
+.ticket p{
+    margin:5px 0;
+}
+
+.center{
+    text-align:center;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
 @media(max-width:768px){
-    .inicio{
-        padding:18px;
+
+    .contenedor{
+        padding:20px;
+        margin:10px;
+    }
+
+    h1{
+        font-size:30px;
+    }
+
+    .logo-box{
+        padding:25px;
     }
 
     .logo-central{
-        width:160px;
-        height:160px;
-    }
-
-    .logo-box h1{
-        font-size:30px;
+        width:150px;
+        height:150px;
     }
 
     .boton-modulo{
         font-size:16px;
         padding:18px;
+    }
+
+    .caja-grid{
+        grid-template-columns:1fr;
+    }
+
+    table{
+        display:block;
+        overflow-x:auto;
     }
 }
