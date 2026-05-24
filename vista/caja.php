@@ -1,229 +1,387 @@
 <?php
-error_reporting(0);
-ini_set('display_errors', 0);
-
 include("../controlador/seguridad.php");
-include("../controlador/permisos.php");
 include("../modelo/conexion.php");
 
-proteger("punto_venta");
-
-$productos = $conexion->query("SELECT * FROM productos WHERE estado='activo' ORDER BY nombre_producto ASC");
+$productos = $conexion->query("
+    SELECT * FROM productos
+    WHERE estado = 'activo'
+    ORDER BY nombre_producto ASC
+");
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Caja</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Punto de Venta</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-*{box-sizing:border-box;font-family:Arial}
-body{background:#f1f5f9;padding:30px}
-.card{background:white;padding:30px;border-radius:22px;box-shadow:0 10px 25px #0002}
-h1{margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1.3fr 1.8fr 120px 120px;gap:12px;margin-bottom:15px}
-input,select{padding:13px;border:1px solid #ddd;border-radius:10px;width:100%}
-button,.btn{background:#2563eb;color:white;border:0;padding:13px 18px;border-radius:10px;text-decoration:none;cursor:pointer}
-.btn-red{background:#dc2626}
-.btn-green{background:#16a34a}
-table{width:100%;border-collapse:collapse;margin-top:20px}
-th{background:#2563eb;color:white;padding:12px}
-td{padding:12px;border-bottom:1px solid #ddd;text-align:center}
-.total{font-size:28px;font-weight:bold;text-align:right;margin-top:20px}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f1f5f9;
+    padding:20px;
+}
+
+.contenedor{
+    max-width:1400px;
+    margin:auto;
+}
+
+.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.btn{
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    padding:12px 20px;
+    border-radius:10px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 380px;
+    gap:25px;
+}
+
+.card{
+    background:white;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+.busqueda{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:15px;
+}
+
+.busqueda input{
+    flex:1;
+    min-width:200px;
+    padding:14px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+}
+
+.busqueda button{
+    background:#16a34a;
+    color:white;
+    border:none;
+    padding:14px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+#reader{
+    width:100%;
+    max-width:350px;
+    display:none;
+    margin:15px auto;
+}
+
+.tabla-responsive{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:650px;
+}
+
+th{
+    background:#2563eb;
+    color:white;
+    padding:14px;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #e5e7eb;
+    text-align:center;
+}
+
+.btn-agregar{
+    background:#16a34a;
+    color:white;
+    border:none;
+    padding:10px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.lista-carrito{
+    max-height:350px;
+    overflow:auto;
+    margin-top:15px;
+}
+
+.item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:12px 0;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.btn-eliminar{
+    background:#dc2626;
+    color:white;
+    border:none;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.total{
+    font-size:38px;
+    color:#16a34a;
+    font-weight:bold;
+    margin:20px 0;
+}
+
+.btn-vender,
+.btn-limpiar{
+    width:100%;
+    border:none;
+    padding:16px;
+    font-size:18px;
+    border-radius:12px;
+    cursor:pointer;
+    margin-top:10px;
+    color:white;
+}
+
+.btn-vender{
+    background:#2563eb;
+}
+
+.btn-limpiar{
+    background:#dc2626;
+}
+
+@media(max-width:900px){
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    body{
+        padding:12px;
+    }
+
+    .total{
+        font-size:30px;
+    }
+}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-<h1>Caja / Punto de Venta</h1>
+<div class="contenedor">
 
-<form action="../controlador/ventaController.php" method="POST" id="formVenta">
+    <div class="top">
+        <h1>🛒 Punto de Venta</h1>
+        <a href="dashboard.php" class="btn">← Regresar</a>
+    </div>
 
-<div class="grid">
-    <input type="text" id="codigo" placeholder="Escanear código" autocomplete="off" autofocus>
+    <div class="grid">
 
-    <select id="producto">
-        <option value="">Selecciona producto</option>
-        <?php while($p = $productos->fetch_assoc()) { ?>
-            <option 
-                value="<?php echo $p['id_producto']; ?>"
-                data-codigo="<?php echo $p['codigo']; ?>"
-                data-nombre="<?php echo $p['nombre_producto']; ?>"
-                data-precio="<?php echo $p['precio_venta']; ?>">
-                <?php echo $p['codigo']." - ".$p['nombre_producto']." - $".$p['precio_venta']." - Stock: ".$p['stock']; ?>
-            </option>
-        <?php } ?>
-    </select>
+        <div class="card">
 
-    <input type="number" id="cantidad" value="1" min="1">
+            <div class="busqueda">
+                <input type="text" id="buscar" placeholder="Buscar producto o código..." onkeyup="buscarProductos()">
+                <button type="button" onclick="abrirScanner()">📷 Escanear</button>
+            </div>
 
-    <button type="button" onclick="agregarProducto()">Agregar</button>
-</div>
+            <div id="reader"></div>
 
-<table id="tablaVenta">
-<thead>
-<tr>
-    <th>Código</th>
-    <th>Producto</th>
-    <th>Cantidad</th>
-    <th>Precio</th>
-    <th>Subtotal</th>
-    <th>Quitar</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+            <div class="tabla-responsive">
+                <table id="tablaProductos">
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Acción</th>
+                    </tr>
 
-<div class="total">
-Total: $<span id="totalTexto">0.00</span>
-</div>
+                    <?php while($p = $productos->fetch_assoc()) { ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($p['codigo']); ?></td>
+                        <td><?php echo htmlspecialchars($p['nombre_producto']); ?></td>
+                        <td>$<?php echo number_format($p['precio_venta'],2); ?></td>
+                        <td><?php echo $p['stock']; ?></td>
+                        <td>
+                            <button
+                                class="btn-agregar"
+                                onclick='agregarProducto(
+                                    <?php echo json_encode($p["id_producto"]); ?>,
+                                    <?php echo json_encode($p["nombre_producto"]); ?>,
+                                    <?php echo json_encode($p["precio_venta"]); ?>
+                                )'>
+                                Agregar
+                            </button>
+                        </td>
+                    </tr>
+                    <?php } ?>
+                </table>
+            </div>
 
-<input type="hidden" name="productos_json" id="productos_json">
+        </div>
 
-<br>
+        <div class="card">
 
-<button type="submit" class="btn-green">Finalizar venta</button>
-<button type="button" class="btn-red" onclick="limpiarVenta()">Limpiar venta</button>
-<a href="dashboard.php" class="btn">Volver</a>
+            <h2>Venta actual</h2>
 
-</form>
+            <div class="lista-carrito" id="carrito"></div>
+
+            <div class="total" id="total">$0.00</div>
+
+            <form action="../controlador/ventaController.php" method="POST" id="formVenta">
+                <input type="hidden" name="productos" id="productosInput">
+                <input type="hidden" name="total" id="totalInput">
+
+                <button type="submit" class="btn-vender">
+                    Finalizar venta
+                </button>
+            </form>
+
+            <button type="button" class="btn-limpiar" onclick="limpiarVenta()">
+                Limpiar venta
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 <script>
 let carrito = [];
+let total = 0;
+let scannerActivo = false;
+let html5QrCode = null;
 
-const codigoInput = document.getElementById("codigo");
-const productoSelect = document.getElementById("producto");
-const cantidadInput = document.getElementById("cantidad");
+function agregarProducto(id, nombre, precio){
+    precio = parseFloat(precio);
 
-codigoInput.focus();
-
-codigoInput.addEventListener("keydown", function(e){
-    if(e.key === "Enter"){
-        e.preventDefault();
-
-        let codigo = codigoInput.value.trim();
-
-        if(codigo === ""){
-            return;
-        }
-
-        let encontrado = false;
-
-        for(let option of productoSelect.options){
-            if(option.dataset.codigo === codigo){
-                productoSelect.value = option.value;
-                encontrado = true;
-                agregarProducto();
-                break;
-            }
-        }
-
-        if(!encontrado){
-            alert("Producto no encontrado");
-        }
-
-        codigoInput.value = "";
-
-        setTimeout(() => {
-            codigoInput.focus();
-        }, 100);
-    }
-});
-
-function agregarProducto(){
-    let option = productoSelect.options[productoSelect.selectedIndex];
-
-    if(!option || productoSelect.value === ""){
-        alert("Selecciona o escanea un producto");
-        return;
-    }
-
-    let id = productoSelect.value;
-    let codigo = option.dataset.codigo;
-    let nombre = option.dataset.nombre;
-    let precio = parseFloat(option.dataset.precio);
-    let cantidad = parseInt(cantidadInput.value);
-
-    if(cantidad <= 0 || isNaN(cantidad)){
-        cantidad = 1;
-    }
-
-    let existente = carrito.find(p => p.id_producto == id);
-
-    if(existente){
-        existente.cantidad += cantidad;
-        existente.subtotal = existente.cantidad * existente.precio;
-    }else{
-        carrito.push({
-            id_producto:id,
-            codigo:codigo,
-            nombre:nombre,
-            precio:precio,
-            cantidad:cantidad,
-            subtotal:precio*cantidad
-        });
-    }
-
-    productoSelect.value = "";
-    cantidadInput.value = 1;
-
-    actualizarTabla();
-
-    setTimeout(() => {
-        codigoInput.focus();
-    }, 100);
-}
-
-function actualizarTabla(){
-    let tbody = document.querySelector("#tablaVenta tbody");
-    tbody.innerHTML = "";
-
-    let total = 0;
-
-    carrito.forEach((p,index)=>{
-        total += p.subtotal;
-
-        tbody.innerHTML += `
-        <tr>
-            <td>${p.codigo}</td>
-            <td>${p.nombre}</td>
-            <td>${p.cantidad}</td>
-            <td>$${p.precio.toFixed(2)}</td>
-            <td>$${p.subtotal.toFixed(2)}</td>
-            <td>
-                <button type="button" class="btn-red" onclick="quitar(${index})">
-                    X
-                </button>
-            </td>
-        </tr>`;
+    carrito.push({
+        id:id,
+        nombre:nombre,
+        precio:precio
     });
 
-    document.getElementById("totalTexto").innerText = total.toFixed(2);
-    document.getElementById("productos_json").value = JSON.stringify(carrito);
+    renderCarrito();
 }
 
-function quitar(index){
+function renderCarrito(){
+    const contenedor = document.getElementById("carrito");
+    contenedor.innerHTML = "";
+    total = 0;
+
+    carrito.forEach((item,index)=>{
+        total += item.precio;
+
+        contenedor.innerHTML += `
+            <div class="item">
+                <div>
+                    <strong>${item.nombre}</strong><br>
+                    $${item.precio.toFixed(2)}
+                </div>
+
+                <button class="btn-eliminar" onclick="eliminarProducto(${index})">
+                    X
+                </button>
+            </div>
+        `;
+    });
+
+    document.getElementById("total").innerHTML = "$" + total.toFixed(2);
+    document.getElementById("productosInput").value = JSON.stringify(carrito);
+    document.getElementById("totalInput").value = total.toFixed(2);
+}
+
+function eliminarProducto(index){
     carrito.splice(index,1);
-    actualizarTabla();
+    renderCarrito();
 }
 
 function limpiarVenta(){
     carrito = [];
-    actualizarTabla();
-    codigoInput.value = "";
-    cantidadInput.value = 1;
-    productoSelect.value = "";
-    codigoInput.focus();
+    total = 0;
+    renderCarrito();
+}
+
+function buscarProductos(){
+    const input = document.getElementById("buscar").value.toLowerCase();
+    const filas = document.querySelectorAll("#tablaProductos tr");
+
+    for(let i=1; i<filas.length; i++){
+        let texto = filas[i].innerText.toLowerCase();
+
+        if(texto.includes(input)){
+            filas[i].style.display = "";
+        }else{
+            filas[i].style.display = "none";
+        }
+    }
+}
+
+function abrirScanner(){
+    const reader = document.getElementById("reader");
+    reader.style.display = "block";
+
+    if(scannerActivo){
+        return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps:10, qrbox:250 },
+        function(decodedText){
+            document.getElementById("buscar").value = decodedText;
+            buscarProductos();
+
+            html5QrCode.stop().then(()=>{
+                reader.style.display = "none";
+                scannerActivo = false;
+            });
+        },
+        function(errorMessage){}
+    ).then(()=>{
+        scannerActivo = true;
+    }).catch(err=>{
+        alert("No se pudo abrir la cámara. Revisa permisos.");
+    });
 }
 
 document.getElementById("formVenta").addEventListener("submit", function(e){
-    if(carrito.length === 0){
+    if(carrito.length <= 0){
         e.preventDefault();
-        alert("Agrega productos a la venta");
-        codigoInput.focus();
+        alert("Agrega productos antes de finalizar la venta");
     }
 });
 </script>
