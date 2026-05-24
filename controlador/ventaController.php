@@ -1,14 +1,30 @@
 <?php
-include("seguridad.php");
+error_reporting(0);
+ini_set('display_errors', 0);
+
+include("../controlador/seguridad.php");
 include("../modelo/conexion.php");
 
 $id_usuario = $_SESSION['id_usuario'];
-$id_producto = $_POST['id_producto'];
-$cantidad = $_POST['cantidad'];
 
-$sqlProducto = "SELECT * FROM productos WHERE id_producto = ?";
-$stmt = $conexion->prepare($sqlProducto);
-$stmt->bind_param("i", $id_producto);
+$codigo = trim($_POST['codigo'] ?? '');
+$id_producto = $_POST['id_producto'] ?? '';
+$cantidad = intval($_POST['cantidad'] ?? 1);
+
+if ($cantidad <= 0) {
+    $cantidad = 1;
+}
+
+if ($codigo != '') {
+    $sql = "SELECT * FROM productos WHERE codigo=? AND estado='activo' LIMIT 1";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("s", $codigo);
+} else {
+    $sql = "SELECT * FROM productos WHERE id_producto=? AND estado='activo' LIMIT 1";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $id_producto);
+}
+
 $stmt->execute();
 $resultado = $stmt->get_result();
 
@@ -22,22 +38,19 @@ if ($producto['stock'] < $cantidad) {
     die("No hay suficiente stock");
 }
 
-$precio = $producto['precio_venta'];
-$total = $precio * $cantidad;
+$id_producto = $producto['id_producto'];
+$total = $producto['precio_venta'] * $cantidad;
 
-$sqlVenta = "INSERT INTO ventas (id_producto, id_usuario, cantidad, total) VALUES (?, ?, ?, ?)";
+$sqlVenta = "INSERT INTO ventas(id_producto,id_usuario,cantidad,total,fecha_venta)
+             VALUES(?,?,?,?,NOW())";
 $stmtVenta = $conexion->prepare($sqlVenta);
 $stmtVenta->bind_param("iiid", $id_producto, $id_usuario, $cantidad, $total);
 $stmtVenta->execute();
 
 $id_venta = $conexion->insert_id;
 
-$subtotal = $total;
-
-$sqlDetalle = "INSERT INTO detalle_ventas 
-(id_venta, id_producto, codigo, descripcion, cantidad, precio, subtotal)
-VALUES (?, ?, ?, ?, ?, ?, ?)";
-
+$sqlDetalle = "INSERT INTO detalle_ventas(id_venta,id_producto,codigo,descripcion,cantidad,precio,subtotal)
+               VALUES(?,?,?,?,?,?,?)";
 $stmtDetalle = $conexion->prepare($sqlDetalle);
 $stmtDetalle->bind_param(
     "iissidd",
@@ -46,26 +59,18 @@ $stmtDetalle->bind_param(
     $producto['codigo'],
     $producto['nombre_producto'],
     $cantidad,
-    $precio,
-    $subtotal
+    $producto['precio_venta'],
+    $total
 );
 $stmtDetalle->execute();
 
 $nuevoStock = $producto['stock'] - $cantidad;
 
-$sqlStock = "UPDATE productos SET stock = ? WHERE id_producto = ?";
+$sqlStock = "UPDATE productos SET stock=? WHERE id_producto=?";
 $stmtStock = $conexion->prepare($sqlStock);
 $stmtStock->bind_param("ii", $nuevoStock, $id_producto);
 $stmtStock->execute();
 
-$sqlMov = "INSERT INTO movimientos 
-(id_producto, id_usuario, tipo_movimiento, cantidad, observacion)
-VALUES (?, ?, 'Salida', ?, 'Venta en caja')";
-
-$stmtMov = $conexion->prepare($sqlMov);
-$stmtMov->bind_param("iii", $id_producto, $id_usuario, $cantidad);
-$stmtMov->execute();
-
-header("Location: ../vista/ticket.php?id_venta=" . $id_venta);
+header("Location: ../vista/ticket.php?id=".$id_venta);
 exit();
 ?>

@@ -1,4 +1,7 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
+
 include("../controlador/seguridad.php");
 include("../controlador/permisos.php");
 include("../modelo/conexion.php");
@@ -15,23 +18,55 @@ $productos = $conexion->query("SELECT * FROM productos WHERE estado='activo' ORD
 <title>Caja</title>
 
 <style>
-body{font-family:Arial;background:#f1f5f9;padding:30px}
-.contenedor{max-width:1100px;margin:auto}
-.card{background:white;padding:25px;border-radius:20px;box-shadow:0 5px 15px rgba(0,0,0,.1)}
-h1{margin-bottom:20px}
-table{width:100%;border-collapse:collapse;margin-top:20px}
-th{background:#2563eb;color:white;padding:12px}
-td{padding:12px;border-bottom:1px solid #ddd;text-align:center}
-input,select{padding:10px;width:100%;border:1px solid #ccc;border-radius:8px}
-button,.btn{background:#2563eb;color:white;border:none;padding:12px 20px;border-radius:10px;cursor:pointer;text-decoration:none}
-button:hover,.btn:hover{background:#1d4ed8}
-.total{font-size:28px;font-weight:bold;margin-top:20px}
+body{
+    font-family:Arial;
+    background:#f1f5f9;
+    padding:35px;
+}
+.card{
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+h1{
+    margin-bottom:25px;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+th{
+    background:#2563eb;
+    color:white;
+    padding:14px;
+}
+td{
+    padding:12px;
+}
+select,input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+.btn{
+    background:#2563eb;
+    color:white;
+    border:0;
+    padding:14px 22px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:20px;
+}
+.btn:hover{
+    background:#1d4ed8;
+}
 </style>
 </head>
 
 <body>
 
-<div class="contenedor">
 <div class="card">
 
 <h1>Caja / Punto de Venta</h1>
@@ -40,38 +75,68 @@ button:hover,.btn:hover{background:#1d4ed8}
 
 <table>
 <tr>
+    <th>Escanear código</th>
     <th>Producto</th>
     <th>Cantidad</th>
 </tr>
 
 <tr>
-    <td>
-        <select name="id_producto" required>
-            <option value="">Selecciona producto</option>
-            <?php while($p = $productos->fetch_assoc()){ ?>
-                <option value="<?php echo $p['id_producto']; ?>">
-                    <?php echo $p['nombre_producto']; ?> - $<?php echo $p['precio_venta']; ?> - Stock: <?php echo $p['stock']; ?>
-                </option>
-            <?php } ?>
-        </select>
-    </td>
+<td>
+    <input 
+        type="text" 
+        name="codigo" 
+        id="codigo" 
+        placeholder="Escanea el código"
+        autocomplete="off"
+        autofocus>
+</td>
 
-    <td>
-        <input type="number" name="cantidad" min="1" required>
-    </td>
+<td>
+    <select name="id_producto" id="id_producto">
+        <option value="">Selecciona producto</option>
+
+        <?php while($p = $productos->fetch_assoc()) { ?>
+            <option value="<?php echo $p['id_producto']; ?>">
+                <?php echo $p['codigo']." - ".$p['nombre_producto']." - $".$p['precio_venta']." - Stock: ".$p['stock']; ?>
+            </option>
+        <?php } ?>
+
+    </select>
+</td>
+
+<td>
+    <input type="number" name="cantidad" value="1" min="1">
+</td>
 </tr>
 </table>
 
-<br>
+<button class="btn" type="submit">
+    Realizar venta e imprimir ticket
+</button>
 
-<button type="submit">Realizar venta e imprimir ticket</button>
-
-<a href="dashboard.php" class="btn">Volver</a>
+<a href="dashboard.php" class="btn" style="text-decoration:none;">
+    Volver
+</a>
 
 </form>
 
 </div>
-</div>
+
+<script>
+const codigo = document.getElementById("codigo");
+codigo.focus();
+
+document.addEventListener("click", () => {
+    codigo.focus();
+});
+
+codigo.addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        e.preventDefault();
+        document.querySelector("form").submit();
+    }
+});
+</script>
 
 </body>
 </html>

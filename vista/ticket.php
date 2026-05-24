@@ -1,36 +1,23 @@
 <?php
-include("../controlador/seguridad.php");
+error_reporting(0);
+ini_set('display_errors', 0);
+
 include("../modelo/conexion.php");
 
-$id_venta = $_GET['id_venta'];
+$id = $_GET['id'] ?? 0;
 
-$sql = "
-SELECT 
-    v.id_venta,
-    v.total,
-    v.fecha_venta,
-    u.usuario,
-    dv.descripcion,
-    dv.cantidad,
-    dv.precio,
-    dv.subtotal
-FROM ventas v
-INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
-INNER JOIN detalle_ventas dv ON v.id_venta = dv.id_venta
-WHERE v.id_venta = ?
-";
+$sql = "SELECT v.*, u.usuario
+        FROM ventas v
+        LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
+        WHERE v.id_venta=?";
 
 $stmt = $conexion->prepare($sql);
-$stmt->bind_param("i", $id_venta);
+$stmt->bind_param("i", $id);
 $stmt->execute();
 
-$resultado = $stmt->get_result();
+$venta = $stmt->get_result()->fetch_assoc();
 
-if ($resultado->num_rows == 0) {
-    die("Ticket no encontrado");
-}
-
-$venta = $resultado->fetch_assoc();
+$detalles = $conexion->query("SELECT * FROM detalle_ventas WHERE id_venta='$id'");
 ?>
 
 <!DOCTYPE html>
@@ -38,46 +25,68 @@ $venta = $resultado->fetch_assoc();
 <head>
 <meta charset="UTF-8">
 <title>Ticket</title>
-
 <style>
-body{font-family:Arial;background:white}
-.ticket{width:300px;margin:30px auto;border:1px dashed #333;padding:20px}
-h2{text-align:center}
-p{margin:6px 0}
-.total{font-size:22px;font-weight:bold;text-align:center}
-.btn{display:block;margin:15px auto;padding:10px;background:#2563eb;color:white;text-align:center;text-decoration:none;border-radius:8px}
-@media print{.btn{display:none}}
+body{
+    font-family:Arial;
+    width:300px;
+    font-size:14px;
+}
+h2,p{
+    text-align:center;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+td,th{
+    border-bottom:1px dashed #999;
+    padding:5px;
+    text-align:left;
+}
+.total{
+    font-size:18px;
+    font-weight:bold;
+    text-align:right;
+}
 </style>
 </head>
-
 <body>
 
-<div class="ticket">
-
 <h2>Punto de Venta</h2>
-
-<p><strong>Ticket:</strong> <?php echo $venta['id_venta']; ?></p>
-<p><strong>Fecha:</strong> <?php echo $venta['fecha_venta']; ?></p>
-<p><strong>Cajero:</strong> <?php echo $venta['usuario']; ?></p>
+<p>Ticket de venta</p>
 
 <hr>
 
-<p><strong>Producto:</strong> <?php echo $venta['descripcion']; ?></p>
-<p><strong>Cantidad:</strong> <?php echo $venta['cantidad']; ?></p>
-<p><strong>Precio:</strong> $<?php echo number_format($venta['precio'],2); ?></p>
-<p><strong>Subtotal:</strong> $<?php echo number_format($venta['subtotal'],2); ?></p>
+<p>Venta: <?php echo $venta['id_venta']; ?></p>
+<p>Usuario: <?php echo $venta['usuario']; ?></p>
+<p>Fecha: <?php echo $venta['fecha_venta']; ?></p>
 
-<hr>
+<table>
+<tr>
+    <th>Producto</th>
+    <th>Cant.</th>
+    <th>Sub.</th>
+</tr>
 
-<p class="total">Total: $<?php echo number_format($venta['total'],2); ?></p>
+<?php while($d = $detalles->fetch_assoc()) { ?>
+<tr>
+    <td><?php echo $d['descripcion']; ?></td>
+    <td><?php echo $d['cantidad']; ?></td>
+    <td>$<?php echo number_format($d['subtotal'],2); ?></td>
+</tr>
+<?php } ?>
 
-<p style="text-align:center;">Gracias por su compra</p>
+</table>
 
-<a href="#" onclick="window.print()" class="btn">Imprimir Ticket</a>
-<a href="caja.php" class="btn">Nueva venta</a>
-<a href="dashboard.php" class="btn">Dashboard</a>
+<p class="total">
+Total: $<?php echo number_format($venta['total'],2); ?>
+</p>
 
-</div>
+<p>Gracias por su compra</p>
+
+<script>
+window.print();
+</script>
 
 </body>
 </html>
