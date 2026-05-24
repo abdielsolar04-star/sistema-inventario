@@ -1,175 +1,246 @@
 <?php
 include("../controlador/seguridad.php");
+include("../modelo/conexion.php");
+include("../controlador/permisos.php");
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - Punto de Venta</title>
+    <meta charset="UTF-8">
+    <title>Inicio - Papelería</title>
 
-<style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, sans-serif;
-}
+    <link rel="stylesheet" href="../assets/css/estilo.css">
 
-body{
-    background:#f1f5f9;
-    min-height:100vh;
-}
+    <style>
 
-.header{
-    background:#111827;
-    color:white;
-    padding:20px 35px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Arial, Helvetica, sans-serif;
+        }
 
-.header h1{
-    font-size:26px;
-}
+        body{
+            background:#f1f5f9;
+        }
 
-.header a{
-    background:#dc2626;
-    color:white;
-    padding:10px 16px;
-    border-radius:8px;
-    text-decoration:none;
-}
+        .inicio{
+            min-height:100vh;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+            padding:30px;
+        }
 
-.contenedor{
-    padding:35px;
-}
+        .contenedor-logo{
+            background:white;
+            width:100%;
+            max-width:850px;
+            border-radius:25px;
+            padding:40px;
+            text-align:center;
+            box-shadow:0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom:30px;
+        }
 
-.bienvenida{
-    background:white;
-    padding:25px;
-    border-radius:18px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.08);
-    margin-bottom:30px;
-}
+        .logo-central{
+            width:250px;
+            height:250px;
+            object-fit:contain;
+            display:block;
+            margin:0 auto 20px auto;
+        }
 
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:20px;
-}
+        .titulo{
+            font-size:48px;
+            color:#111827;
+            margin-bottom:10px;
+        }
 
-.card{
-    background:white;
-    padding:28px;
-    border-radius:18px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.08);
-    text-align:center;
-}
+        .subtitulo{
+            color:#64748b;
+            font-size:22px;
+            margin-bottom:20px;
+        }
 
-.card h2{
-    font-size:22px;
-    color:#111827;
-    margin-bottom:10px;
-}
+        .usuario{
+            display:inline-block;
+            background:#2563eb;
+            color:white;
+            padding:12px 25px;
+            border-radius:30px;
+            font-size:17px;
+            font-weight:bold;
+        }
 
-.card p{
-    color:#64748b;
-    margin-bottom:18px;
-}
+        .botones{
+            width:100%;
+            max-width:1100px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:20px;
+        }
 
-.card a{
-    display:block;
-    background:#2563eb;
-    color:white;
-    padding:12px;
-    border-radius:10px;
-    text-decoration:none;
-    font-weight:bold;
-}
+        .btn-modulo{
+            background:white;
+            color:#111827;
+            text-decoration:none;
+            padding:28px;
+            border-radius:18px;
+            text-align:center;
+            font-size:21px;
+            font-weight:bold;
+            transition:0.3s;
+            box-shadow:0 10px 25px rgba(0,0,0,0.08);
+        }
 
-.card a:hover{
-    background:#1d4ed8;
-}
-</style>
+        .btn-modulo:hover{
+            background:#2563eb;
+            color:white;
+            transform:translateY(-5px);
+        }
+
+        .salir{
+            background:#dc2626;
+            color:white;
+        }
+
+        @media(max-width:768px){
+
+            .logo-central{
+                width:180px;
+                height:180px;
+            }
+
+            .titulo{
+                font-size:34px;
+            }
+
+            .subtitulo{
+                font-size:18px;
+            }
+
+            .btn-modulo{
+                font-size:18px;
+                padding:20px;
+            }
+
+        }
+
+    </style>
+
 </head>
-
 <body>
 
-<div class="header">
-    <h1>Sistema de Inventario</h1>
-    <a href="../controlador/logout.php">Cerrar sesión</a>
-</div>
+<div class="inicio">
 
-<div class="contenedor">
+    <div class="contenedor-logo">
 
-    <div class="bienvenida">
-        <h2>Bienvenido, <?php echo $_SESSION['usuario']; ?></h2>
-        <p>Panel principal del sistema de inventario y punto de venta.</p>
+        <img 
+            src="../assets/img/logo1.jpeg"
+            class="logo-central"
+        >
+
+        <h1 class="titulo">PUNTO_VENTAS</h1>
+
+        <p class="subtitulo">
+            Inventario & Punto de Venta
+        </p>
+
+        <span class="usuario">
+            <?php echo $_SESSION['rol']; ?>:
+            <?php echo $_SESSION['nombre']; ?>
+        </span>
+
     </div>
 
-    <div class="grid">
+    <div class="botones">
 
-        <div class="card">
-            <h2>Caja</h2>
-            <p>Realizar ventas y generar tickets.</p>
-            <a href="caja.php">Entrar</a>
-        </div>
+        <?php if ($_SESSION['rol'] == 'Administrador') { ?>
 
-        <div class="card">
-            <h2>Productos</h2>
-            <p>Agregar, editar y consultar productos.</p>
-            <a href="productos.php">Entrar</a>
-        </div>
+            <a href="caja.php" class="btn-modulo">
+                🛒 Punto de venta
+            </a>
 
-        <div class="card">
-            <h2>Proveedores</h2>
-            <p>Administrar proveedores registrados.</p>
-            <a href="proveedores.php">Entrar</a>
-        </div>
+            <a href="productos.php" class="btn-modulo">
+                📦 Productos
+            </a>
 
-        <div class="card">
-            <h2>Ventas</h2>
-            <p>Consultar historial de ventas.</p>
-            <a href="ventas.php">Entrar</a>
-        </div>
+            <a href="usuarios.php" class="btn-modulo">
+                👤 Usuarios
+            </a>
 
-        <div class="card">
-            <h2>Corte del día</h2>
-            <p>Ver resumen de ingresos diarios.</p>
-            <a href="corte_dia.php">Entrar</a>
-        </div>
+            <a href="ventas_admin.php" class="btn-modulo">
+                💰 Ventas
+            </a>
 
-        <div class="card">
-            <h2>Ganancias</h2>
-            <p>Consultar ganancias del negocio.</p>
-            <a href="ganancias.php">Entrar</a>
-        </div>
+            <a href="relacion_ventas.php" class="btn-modulo">
+                📑 Relación ventas
+            </a>
 
-        <div class="card">
-            <h2>Movimientos</h2>
-            <p>Entradas y salidas de inventario.</p>
-            <a href="movimientos.php">Entrar</a>
-        </div>
+            <a href="corte_dia.php" class="btn-modulo">
+                📅 Corte del día
+            </a>
 
-        <div class="card">
-            <h2>Usuarios</h2>
-            <p>Administrar usuarios del sistema.</p>
-            <a href="usuarios.php">Entrar</a>
-        </div>
+            <a href="ganancias.php" class="btn-modulo">
+                📈 Ganancias
+            </a>
+
+            <a href="auditoria.php" class="btn-modulo">
+                🛡 Auditoría
+            </a>
+
+        <?php } ?>
+
+        <?php if ($_SESSION['rol'] == 'Empleado') { ?>
+
+            <?php if (tienePermiso($conexion, $_SESSION['id_usuario'], "punto_venta")) { ?>
+                <a href="caja.php" class="btn-modulo">
+                    🛒 Punto de venta
+                </a>
+            <?php } ?>
+
+            <?php if (tienePermiso($conexion, $_SESSION['id_usuario'], "ver_productos")) { ?>
+                <a href="productos.php" class="btn-modulo">
+                    📦 Productos
+                </a>
+            <?php } ?>
+
+            <?php if (tienePermiso($conexion, $_SESSION['id_usuario'], "corte_dia")) { ?>
+                <a href="corte_dia.php" class="btn-modulo">
+                    📅 Corte del día
+                </a>
+            <?php } ?>
+
+            <?php if (tienePermiso($conexion, $_SESSION['id_usuario'], "ver_ganancias")) { ?>
+                <a href="ganancias.php" class="btn-modulo">
+                    📈 Ganancias
+                </a>
+            <?php } ?>
+
+        <?php } ?>
+
+        <a 
+            href="../controlador/logout.php"
+            class="btn-modulo salir"
+        >
+            🚪 Cerrar sesión
+        </a>
 
     </div>
 
 </div>
 
 <script>
-window.history.pushState(null, "", window.location.href);
 
-window.addEventListener("popstate", function () {
-    window.history.pushState(null, "", window.location.href);
-});
+history.pushState(null, null, location.href);
+
+window.onpopstate = function () {
+    history.go(1);
+};
+
 </script>
 
 </body>
